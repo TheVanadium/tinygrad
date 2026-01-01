@@ -5,7 +5,8 @@ from typing import Any, Generic, TypeVar, Iterator, Generator
 import importlib, inspect, functools, pathlib, os, platform, contextlib, sys, re, atexit, pickle, decimal
 from tinygrad.helpers import CI, OSX, LRU, getenv, diskcache_get, diskcache_put, DEBUG, GlobalCounters, flat_mv, PROFILE, temp, colored
 from tinygrad.helpers import Context, CCACHE, ALLOW_DEVICE_USAGE, MAX_BUFFER_SIZE, cpu_events, ProfileEvent, ProfilePointEvent, dedup, ContextVar
-from tinygrad.helpers import unwrap_class_type, suppress_finalizing, select_first_inited, VIZ, CPU_LLVM, CPU_LVP, NV_PTX, CUDA_PTX, NV_NAK
+from tinygrad.helpers import unwrap_class_type, suppress_finalizing, select_first_inited, VIZ
+from tinygrad.helpers import CPU_LLVM, CPU_LVP, NV_PTX, CUDA_PTX, NV_NAK, CUDA_CC, NV_CC
 from tinygrad.dtype import DType, ImageDType, PtrDType, dtypes, _to_np_dtype
 from tinygrad.renderer import Renderer
 
@@ -346,15 +347,21 @@ class Compiled:
 def is_dtype_supported(dtype:DType, device:str|None=None) -> bool:
   if dtype == dtypes.index: return False
   if device is None: device = Device.DEFAULT
+
+  # special case compilers with multiple vars
+  cuda_ptx = CUDA_CC.value=="PTX" if CUDA_CC is not None else CUDA_PTX
+  nv_ptx = NV_CC.value=="PTX" if NV_CC is not None else NV_PTX
+  nv_nak = NV_CC.value=="NAK" if NV_CC is not None else NV_NAK
+
   if dtype == dtypes.bfloat16:
     if device == "METAL": return not CI
-    if device == "CUDA": return not CI and not CUDA_PTX
-    if device == "NV": return not CI and not NV_PTX and not NV_NAK
+    if device == "CUDA": return not CI and not cuda_ptx
+    if device == "NV": return not CI and not nv_ptx and not nv_nak
     if device in {"CPU"}: return not CI and platform.machine() in {"arm", "arm64", "aarch64", "x86_64", "amd64"} and not CPU_LVP
     return device in {"AMD", "PYTHON", "NULL"}
   if dtype in dtypes.fp8s:
-    if device == "CUDA": return not CI and not CUDA_PTX
-    if device == "NV": return not CI and not NV_PTX and not NV_NAK
+    if device == "CUDA": return not CI and not cuda_ptx
+    if device == "NV": return not CI and not nv_ptx and not nv_nak
     if device == "AMD": return not CI and getattr(Device["AMD"], "target") in {(9,4,2), (9,5,0)}
     return device in {"PYTHON", "NULL"}
   if device == "WEBGPU": return dtype in [dtypes.bool, dtypes.char, dtypes.uchar, dtypes.short,
