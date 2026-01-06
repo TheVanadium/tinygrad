@@ -183,7 +183,7 @@ ALLOW_DEVICE_USAGE, MAX_BUFFER_SIZE = ContextVar("ALLOW_DEVICE_USAGE", 1), Conte
 EMULATE = ContextVar("EMULATE", "")
 CPU_COUNT = ContextVar("CPU_COUNT", max(1, len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1)))
 # Compilers
-def set_compiler_env(device: str, compilers: list[str]) -> list[ContextVar]:
+def set_compiler_env(device: str, compilers: set[str]) -> list[ContextVar]:
   ctrl = ContextVar(f"{device}_CC", "")
   compiler_vars = [ContextVar(f"{device}_{r}", 0) for r in compilers]
   if ctrl:
@@ -195,11 +195,11 @@ def set_compiler_env(device: str, compilers: list[str]) -> list[ContextVar]:
     if len(forced_comps) > 1: raise RuntimeError(f"{device}: multiple compilers set in env {forced_comps}")
   return [ctrl] + compiler_vars
 
-CPU_CC, CPU_LVP, CPU_LLVM = set_compiler_env("CPU", ["LLVM", "LVP"])
-NV_CC, NV_PTX, NV_NAK = set_compiler_env("NV", ["PTX", "NAK"])
-CUDA_CC, CUDA_PTX = set_compiler_env("CUDA", ["PTX"])
-AMD_CC, AMD_LLVM = set_compiler_env("AMD", ["LLVM"])
-QCOM_CC, QCOM_IR3 = set_compiler_env("QCOM", ["IR3"])
+CPU_CC, CPU_LVP, CPU_LLVM = set_compiler_env("CPU", {"LLVM", "LVP"})
+NV_CC, NV_PTX, NV_NAK = set_compiler_env("NV", {"PTX", "NAK"})
+CUDA_CC, CUDA_PTX = set_compiler_env("CUDA", {"PTX"})
+AMD_CC, AMD_LLVM = set_compiler_env("AMD", {"LLVM"})
+QCOM_CC, QCOM_IR3 = set_compiler_env("QCOM", {"IR3"})
 NULL_IR3, NULL_NAK = ContextVar("NULL_IR3", 0), ContextVar("NULL_NAK", 0)
 # VIZ implies PROFILE, but you can run PROFILE without VIZ
 VIZ = ContextVar("VIZ", 0)
