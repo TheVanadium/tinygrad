@@ -3731,7 +3731,7 @@ class Tensor(OpMixin):
       #compute the jacobi rotations for each pairing
       gamma = (U_left * U_right).sum(-2).reshape(b_shape + (1, num//2))
       alpha, beta = U_permuted.square().sum(-2).unsqueeze(-2).split(num//2, -1)
-      rot = ~(1/gamma).isinf() # gamma != 0 doesn't work on PTX because -0.0 != 0 is True
+      rot = ~(1/gamma).isinf() # In certain devices like PTX, -0.0 == 0 won't be true. so making reciprocal.
       tau = (beta - alpha) / (2 * rot.where(gamma, 1))
       t = (tau != 0).where(tau.sign(), 1) / (tau.abs() + (1 + tau.square()).sqrt())
       t = rot.where(t, 0)
